@@ -16,11 +16,37 @@ use ai_behavior::{
 };
 use player::Player;
 
+struct Buyable {
+    x: f64,
+    y: f64,
+    speed: f64,
+    id: usize
+}
+
+impl Buyable {
+    pub fn new(param_id: usize) -> Buyable {
+        Buyable {
+            x: 500.0, // edge of the screen
+            y: 300.0, // same as player
+            speed: 2.0,
+            id: param_id
+        }
+    }
+
+    pub fn update(&mut self, dt: f64) {
+        if self.x > 0.0 {
+            self.x -= 1.0 + self.speed * dt;
+        }
+        // deactivate
+    }
+}
+
 struct Game {
     state: &'static str,
     tiredness: f64,
     relationship: f64,
-    player: Player
+    player: Player,
+    buyables: Vec<Buyable>,
 }
 
 impl Game {
@@ -29,7 +55,8 @@ impl Game {
             state: param_state,
             tiredness: 0.0,
             relationship: 10.0,
-            player: Player::new()
+            player: Player::new(),
+            buyables: vec![]
         }
     }
     pub fn set_state(&mut self, state: &'static str) {
@@ -37,6 +64,13 @@ impl Game {
     }
     pub fn update(&mut self, dt: f64) {
         self.player.update(dt);
+
+        for b in self.buyables.iter_mut() {
+            b.update(dt);
+        }
+    }
+    pub fn spawn_buyable(&mut self) {
+        self.buyables.push(Buyable::new(1));
     }
 }
 
@@ -152,6 +186,7 @@ fn main() {
                     "shop" => {
                         if key == Key::Space {
                             game.player.jump();
+                            game.spawn_buyable();
                         }
                     }
                     _ => {}
@@ -187,6 +222,10 @@ fn main() {
                         window.draw_2d(&e, |c, g| {
                             clear([1.0, 0.0, 0.0, 1.0], g);
                             image(&player, c.transform.trans(game.player.x, game.player.y), g);
+
+                            for b in game.buyables.iter() {
+                                image(&player, c.transform.trans(b.x, b.y), g);
+                            }
                         });
                     }
                     _ => {}
