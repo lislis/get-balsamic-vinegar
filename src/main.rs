@@ -27,6 +27,7 @@ struct Game {
     player: Player,
     buyables: Vec<Buyable>,
     items: Vec<String>,
+    list: Vec<String>,
     t: f64,
     t_spawn: f64,
     t_shop: f64
@@ -53,7 +54,18 @@ impl Game {
                 "ketchup".to_string(),
                 "bread".to_string(),
                 "cheese".to_string(),
-                "beer".to_string()
+                "beer".to_string(),
+                "apples".to_string(),
+            ],
+            list: vec![
+                "field salad".to_string(),
+                "tomatoes".to_string(),
+                "onions".to_string(),
+                "olive oil".to_string(),
+                "balsamic vinegar".to_string(),
+                "salt".to_string(),
+                "black pepper".to_string(),
+                "mustard".to_string()
             ],
             t: 0.0,
             t_spawn: 0.0,
@@ -102,6 +114,32 @@ impl Game {
     pub fn spawn_buyable(&mut self) {
         let item = rand::thread_rng().choose(&self.items).unwrap();
         self.buyables.push(Buyable::new(item.to_string()));
+    }
+
+    pub fn compare_groceries(&mut self) {
+        let mut correct = vec![];
+        //let mut missing = vec![];
+        let mut too_much = vec![];
+
+        for bought in self.player.basket.iter_mut() {
+            for needed in self.list.iter_mut() {
+                if bought == needed {
+                    correct.push(bought.to_string());
+                }
+            }
+        }
+
+        for bought in self.player.basket.iter_mut() {
+            for c in correct.iter_mut() {
+                if bought != c {
+                    too_much.push(bought.to_string());
+                }
+            }
+        }
+
+        println!("Correct: {:?}", correct);
+        println!("Too much: {:?}", too_much);
+
     }
 }
 
@@ -270,11 +308,13 @@ fn main() {
                                 &"Let's see what you bought.",
                                 &mut glyphs,
                                 &c.draw_state,
-                                c.transform.trans(30.0, 300.0), g)
+                                c.transform.trans(30.0, 300.0), g);
                            // for (i, b) in game.player.basket.iter().enumerate() {
                                 //image(&player, c.transform.trans(50.0 * i as f64, 300.0), g);
 
                             //}
+
+                            game.compare_groceries();
                         });
                     }
                     _ => {}
