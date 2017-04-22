@@ -7,7 +7,7 @@ pub struct Player {
     is_jumping: bool,
     max_height: f64,
     ground_pos: f64,
-    basket: Vec<String>
+    pub basket: Vec<String>
 }
 
 impl Player {
@@ -19,14 +19,14 @@ impl Player {
             h: 30.0,
             speed: 2.0,
             is_jumping: false,
-            max_height: 170.0,
+            max_height: 120.0,
             ground_pos: 300.0, // same as y at init
             basket: vec![]
         }
     }
     pub fn update(&mut self, dt: f64) {
         if self.is_jumping {
-            self.y -= self.speed;
+            self.y -= self.speed * 1.2;
             if self.y < self.max_height {
                 self.is_jumping = false;
             }

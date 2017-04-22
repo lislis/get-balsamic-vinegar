@@ -5,10 +5,10 @@ extern crate ai_behavior;
 extern crate rand;
 
 mod player;
+mod buyable;
 
 use std::rc::Rc;
 use std::path::PathBuf;
-use std::cmp::*;
 use rand::Rng;
 use piston_window::*;
 use sprite::*;
@@ -18,43 +18,7 @@ use ai_behavior::{
     Wait
 };
 use player::Player;
-
-struct Buyable {
-    x: f64,
-    y: f64,
-    w: f64,
-    h: f64,
-    speed: f64,
-    id: String,
-    is_visible: bool
-}
-
-impl Buyable {
-    pub fn new(param_id: String) -> Buyable {
-        Buyable {
-            x: 500.0, // edge of the screen
-            y: 300.0, // same as player
-            w: 50.0,
-            h: 50.0,
-            speed: 2.0,
-            id: param_id,
-            is_visible: true
-        }
-    }
-
-    pub fn update(&mut self, dt: f64) {
-        if self.x > 0.0 - 50.0 {
-            self.x -= 1.0 + self.speed * dt;
-        } else {
-            self.is_visible = false;
-        }
-        // deactivate
-    }
-
-    pub fn into_basket(&mut self) {
-        self.is_visible = false;
-    }
-}
+use buyable::Buyable;
 
 struct Game {
     state: &'static str,
@@ -62,7 +26,10 @@ struct Game {
     relationship: f64,
     player: Player,
     buyables: Vec<Buyable>,
-    items: Vec<String>
+    items: Vec<String>,
+    t: f64,
+    t_spawn: f64,
+    t_shop: f64
 }
 
 impl Game {
@@ -87,13 +54,30 @@ impl Game {
                 "bread".to_string(),
                 "cheese".to_string(),
                 "beer".to_string()
-            ]
+            ],
+            t: 0.0,
+            t_spawn: 0.0,
+            t_shop: 20.0
         }
     }
     pub fn set_state(&mut self, state: &'static str) {
         self.state = state;
     }
     pub fn update(&mut self, dt: f64) {
+
+        self.t += dt;
+        self.t_spawn += dt;
+
+        if self.t_spawn > 2.2 { // should probably be a variable
+            self.t_spawn = 0.0;
+            self.spawn_buyable();
+        }
+
+        if self.t > self.t_shop {
+            self.t = 0.0;
+            self.set_state(&"compare");
+        }
+
         self.player.update(dt);
 
         for b in self.buyables.iter_mut() {
@@ -107,7 +91,7 @@ impl Game {
                     self.player.x + self.player.w > b.x &&
                     self.player.y < b.y + b.h &&
                     self.player.y + self.player.h > b.y {
-                        println!("COLLIDE");
+                        //  println!("COLLIDE");
                         b.into_basket();
                         self.player.buying(b.id.to_string());
                     }
@@ -233,7 +217,6 @@ fn main() {
                     "shop" => {
                         if key == Key::Space {
                             game.player.jump();
-                            game.spawn_buyable();
                         }
                     }
                     _ => {}
@@ -276,6 +259,22 @@ fn main() {
                                     image(&player, c.transform.trans(b.x, b.y), g);
                                 }
                             }
+                        });
+                    }
+                    "compare" => {
+                        println!("{:?}", game.player.basket);
+                        window.draw_2d(&e, |c, g| {
+                            clear([0.0, 0.0, 0.0, 1.0], g);
+
+                            text::Text::new_color(color, 30).draw(
+                                &"Let's see what you bought.",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 300.0), g)
+                           // for (i, b) in game.player.basket.iter().enumerate() {
+                                //image(&player, c.transform.trans(50.0 * i as f64, 300.0), g);
+
+                            //}
                         });
                     }
                     _ => {}
