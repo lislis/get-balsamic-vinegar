@@ -2,11 +2,14 @@ extern crate piston_window;
 extern crate sprite;
 extern crate find_folder;
 extern crate ai_behavior;
+extern crate rand;
 
 mod player;
 
 use std::rc::Rc;
 use std::path::PathBuf;
+use std::cmp::*;
+use rand::Rng;
 use piston_window::*;
 use sprite::*;
 use ai_behavior::{
@@ -19,25 +22,37 @@ use player::Player;
 struct Buyable {
     x: f64,
     y: f64,
+    w: f64,
+    h: f64,
     speed: f64,
-    id: usize
+    id: String,
+    is_visible: bool
 }
 
 impl Buyable {
-    pub fn new(param_id: usize) -> Buyable {
+    pub fn new(param_id: String) -> Buyable {
         Buyable {
             x: 500.0, // edge of the screen
             y: 300.0, // same as player
+            w: 50.0,
+            h: 50.0,
             speed: 2.0,
-            id: param_id
+            id: param_id,
+            is_visible: true
         }
     }
 
     pub fn update(&mut self, dt: f64) {
-        if self.x > 0.0 {
+        if self.x > 0.0 - 50.0 {
             self.x -= 1.0 + self.speed * dt;
+        } else {
+            self.is_visible = false;
         }
         // deactivate
+    }
+
+    pub fn into_basket(&mut self) {
+        self.is_visible = false;
     }
 }
 
@@ -47,6 +62,7 @@ struct Game {
     relationship: f64,
     player: Player,
     buyables: Vec<Buyable>,
+    items: Vec<String>
 }
 
 impl Game {
@@ -56,7 +72,22 @@ impl Game {
             tiredness: 0.0,
             relationship: 10.0,
             player: Player::new(),
-            buyables: vec![]
+            buyables: vec![],
+            items: vec![
+                "field salad".to_string(),
+                "tomatoes".to_string(),
+                "onions".to_string(),
+                "olive oil".to_string(),
+                "balsamic vinegar".to_string(),
+                "salt".to_string(),
+                "black pepper".to_string(),
+                "mustard".to_string(),
+                "chocolate".to_string(),
+                "ketchup".to_string(),
+                "bread".to_string(),
+                "cheese".to_string(),
+                "beer".to_string()
+            ]
         }
     }
     pub fn set_state(&mut self, state: &'static str) {
@@ -69,8 +100,24 @@ impl Game {
             b.update(dt);
         }
     }
+    pub fn collision_detection(&mut self) {
+        for b in self.buyables.iter_mut() {
+            if b.is_visible {
+                if self.player.x < b.x + b.w &&
+                    self.player.x + self.player.w > b.x &&
+                    self.player.y < b.y + b.h &&
+                    self.player.y + self.player.h > b.y {
+                        println!("COLLIDE");
+                        b.into_basket();
+                        self.player.buying(b.id.to_string());
+                    }
+            }
+        }
+    }
+
     pub fn spawn_buyable(&mut self) {
-        self.buyables.push(Buyable::new(1));
+        let item = rand::thread_rng().choose(&self.items).unwrap();
+        self.buyables.push(Buyable::new(item.to_string()));
     }
 }
 
@@ -175,7 +222,7 @@ fn main() {
 
         match e {
             Input::Release(Button::Keyboard(key)) => {
-                println!("{:?}", key);
+                // println!("{:?}", key);
 
                 match game.state {
                     "talk" => {
@@ -198,6 +245,7 @@ fn main() {
                 match game.state {
                     "shop" => {
                         game.update(args.dt);
+                        game.collision_detection();
                     }
                     _ => {}
                 }
@@ -224,7 +272,9 @@ fn main() {
                             image(&player, c.transform.trans(game.player.x, game.player.y), g);
 
                             for b in game.buyables.iter() {
-                                image(&player, c.transform.trans(b.x, b.y), g);
+                                if b.is_visible {
+                                    image(&player, c.transform.trans(b.x, b.y), g);
+                                }
                             }
                         });
                     }
