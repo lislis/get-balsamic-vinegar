@@ -9,23 +9,26 @@ use sprite::*;
 use ai_behavior::{
     Action,
     Sequence,
-    Wait,
-    While
+    Wait
 };
 
 struct Game {
-    state: String
+    state: &'static str,
+    tiredness: f64,
+    relationship: f64
 }
 
 impl Game {
-    pub fn new(param_state:&str) -> Game {
+    pub fn new(param_state: &'static str) -> Game {
         Game {
-            state: String::from(param_state)
+            state: param_state,
+            tiredness: 0.0,
+            relationship: 10.0
         }
     }
 
-    pub fn set_state(&mut self, state: &str) {
-        self.state = String::from(state);
+    pub fn set_state(&mut self, state: &'static str) {
+        self.state = state;
     }
 }
 
@@ -43,31 +46,31 @@ fn main() {
 
     let assets = find_folder::Search::ParentsThenKids(3, 3)
         .for_folder("assets").unwrap();
+
     let bubble_id;
     let bubble_2;
     let bubble_3;
     let bubble_4;
     let mut talk_scene = Scene::new();
+
     let tex = Rc::new(Texture::from_path(
         &mut window.factory,
         assets.join("bubble.png"),
         Flip::None,
         &TextureSettings::new()).unwrap());
-
     let tex2 = Rc::new(Texture::from_path(
         &mut window.factory,
         assets.join("bubble.png"),
         Flip::Horizontal,
         &TextureSettings::new()).unwrap());
 
-    let mut game = Game::new(&"talk");
-
     let mut bubble = Sprite::from_texture(tex.clone());
     let mut bubble2 = Sprite::from_texture(tex2.clone());
-    bubble.set_position(200.0, 100.0);
-    bubble2.set_position(400.0, 200.0);
     let mut bubble3 = Sprite::from_texture(tex.clone());
     let mut bubble4 = Sprite::from_texture(tex2.clone());
+
+    bubble.set_position(200.0, 100.0);
+    bubble2.set_position(400.0, 200.0);
     bubble3.set_position(200.0, 300.0);
     bubble4.set_position(400.0, 400.0);
 
@@ -99,7 +102,6 @@ fn main() {
         Action(Ease(EaseFunction::CubicOut, Box::new(FadeIn(0.5)))),
         Action(Ease(EaseFunction::CubicOut, Box::new(ScaleTo(2.0, 0.4, 0.4))))
     ]);
-
     talk_scene.run(bubble_id, &talk_seq);
     talk_scene.run(bubble_2, &talk_seq2);
     talk_scene.run(bubble_3, &talk_seq3);
@@ -109,6 +111,8 @@ fn main() {
     let font = assets.join("shpinscher-regular.ttf");
     let mut glyphs = Glyphs::new(font, window.factory.clone()).unwrap();
 
+    let mut game = Game::new(&"talk");
+
     while let Some(e) = window.next() {
 
         if game.state == "talk" {
@@ -116,9 +120,21 @@ fn main() {
         }
 
         match e {
-
             Input::Release(Button::Keyboard(key)) => {
                 println!("{:?}", key);
+
+                match game.state {
+                    "talk" => {
+                        if key == Key::Space {
+                            game.set_state(&"shop");
+                        }
+                    }
+                    "shop" => {
+
+                    }
+                    _ => {}
+
+                }
             }
 
             Input::Update(args) => {
@@ -129,13 +145,19 @@ fn main() {
                 window.draw_2d(&e, |c, g| {
                     clear([1.0, 1.0, 1.0, 1.0], g);
 
-                    if game.state == "talk" {
-                        talk_scene.draw(c.transform, g);
-                        text::Text::new_color(color, 30).draw(
-                            "Press <space> to start",
-                            &mut glyphs,
-                            &c.draw_state,
-                            c.transform.trans(30.0, 470.0), g)
+                    match game.state {
+                        "talk" => {
+                            talk_scene.draw(c.transform, g);
+                            text::Text::new_color(color, 30).draw(
+                                "Press <space> to start",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 470.0), g)
+                        }
+                        "shop" => {
+
+                        }
+                        _ => {}
                     }
                 });
             }
