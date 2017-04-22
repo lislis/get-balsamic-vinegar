@@ -22,7 +22,7 @@ use buyable::Buyable;
 
 struct Game {
     state: &'static str,
-    tiredness: f64,
+    energy: f64,
     relationship: f64,
     player: Player,
     buyables: Vec<Buyable>,
@@ -30,14 +30,17 @@ struct Game {
     list: Vec<String>,
     t: f64,
     t_spawn: f64,
-    t_shop: f64
+    t_shop: f64,
+    bought_correctly: Vec<String>,
+    bought_too_much: usize,
+    not_there: usize
 }
 
 impl Game {
     pub fn new(param_state: &'static str) -> Game {
         Game {
             state: param_state,
-            tiredness: 0.0,
+            energy: 10.0,
             relationship: 10.0,
             player: Player::new(),
             buyables: vec![],
@@ -68,8 +71,11 @@ impl Game {
                 "mustard".to_string()
             ],
             t: 0.0,
-            t_spawn: 0.0,
-            t_shop: 20.0
+            t_spawn: 1.5,
+            t_shop: 20.0,
+            bought_correctly: vec![],
+            bought_too_much: 0,
+            not_there: 0
         }
     }
     pub fn set_state(&mut self, state: &'static str) {
@@ -87,6 +93,7 @@ impl Game {
 
         if self.t > self.t_shop {
             self.t = 0.0;
+            self.compare_groceries();
             self.set_state(&"compare");
         }
 
@@ -113,33 +120,36 @@ impl Game {
 
     pub fn spawn_buyable(&mut self) {
         let item = rand::thread_rng().choose(&self.items).unwrap();
+
         self.buyables.push(Buyable::new(item.to_string()));
     }
 
     pub fn compare_groceries(&mut self) {
-        let mut correct = vec![];
-        //let mut missing = vec![];
-        let mut too_much = vec![];
-
         for bought in self.player.basket.iter_mut() {
             for needed in self.list.iter_mut() {
                 if bought == needed {
-                    correct.push(bought.to_string());
+                    self.bought_correctly.push(bought.to_string());
                 }
             }
         }
 
-        for bought in self.player.basket.iter_mut() {
-            for c in correct.iter_mut() {
-                if bought != c {
-                    too_much.push(bought.to_string());
-                }
-            }
-        }
+        self.bought_too_much = self.player.basket.len() - self.bought_correctly.len();
+        self.not_there = self.list.len() - self.bought_correctly.len();
 
-        println!("Correct: {:?}", correct);
-        println!("Too much: {:?}", too_much);
+        self.update_game_status();
+    }
 
+    pub fn update_game_status(&mut self) {
+        self.energy -= 1.0;
+        self.relationship += self.bought_correctly.len() as f64;
+        self.relationship -= self.not_there as f64;
+        println!("{}", self.energy);
+        println!("{}", self.relationship);
+    }
+
+    pub fn reset_for_shop(&mut self) {
+        self.buyables = vec![];
+        self.player.basket = vec![];
     }
 }
 
@@ -249,12 +259,38 @@ fn main() {
                 match game.state {
                     "talk" => {
                         if key == Key::Space {
-                            game.set_state(&"shop");
+                            game.set_state(&"status");
+                        }
+                    }
+                    "status" => {
+                        if key == Key::Space {
+                            if game.energy >= game.relationship {
+                                game.reset_for_shop();
+                                game.set_state(&"shop");
+                            } else {
+                                game.set_state(&"game_over");
+                            }
                         }
                     }
                     "shop" => {
                         if key == Key::Space {
                             game.player.jump();
+                        }
+                    }
+
+                    "compare" => {
+                        if key == Key::Space {
+                            if game.not_there == 0 {
+                                game.set_state(&"win");
+                            } else {
+                                game.set_state(&"resume");
+                            }
+
+                        }
+                    }
+                    "resume" => {
+                        if key == Key::Space {
+                            game.set_state(&"status");
                         }
                     }
                     _ => {}
@@ -300,7 +336,7 @@ fn main() {
                         });
                     }
                     "compare" => {
-                        println!("{:?}", game.player.basket);
+                        //println!("{:?}", game.player.basket);
                         window.draw_2d(&e, |c, g| {
                             clear([0.0, 0.0, 0.0, 1.0], g);
 
@@ -308,16 +344,124 @@ fn main() {
                                 &"Let's see what you bought.",
                                 &mut glyphs,
                                 &c.draw_state,
+                                c.transform.trans(30.0, 200.0), g);
+
+                            text::Text::new_color(color, 30).draw(
+                                &format!("You got {:?} right.", game.bought_correctly.join(", ")),
+                                &mut glyphs,
+                                &c.draw_state,
                                 c.transform.trans(30.0, 300.0), g);
-                           // for (i, b) in game.player.basket.iter().enumerate() {
-                                //image(&player, c.transform.trans(50.0 * i as f64, 300.0), g);
 
-                            //}
+                            text::Text::new_color(color, 30).draw(
+                                &format!("{:?} things are not there.", game.not_there),
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 350.0), g);
 
-                            game.compare_groceries();
+                            text::Text::new_color(color, 30).draw(
+                                &format!("But you got {:?} things that are not necessary.", game.bought_too_much),
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 400.0), g);
+
+                            text::Text::new_color(color, 30).draw(
+                                "Press <space> to shrugg",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 470.0), g);
+                        });
+
+                    }
+
+                    "resume" => {
+                        window.draw_2d(&e, |c, g| {
+                            clear([1.0, 1.0, 1.0, 1.0], g);
+
+                            talk_scene.draw(c.transform, g);
+                            text::Text::new_color(color, 30).draw(
+                                "Press <space> to shop again",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 470.0), g)
+                        });
+                    }
+
+                    "status" => {
+                        window.draw_2d(&e, |c, g| {
+                            clear([0.0, 0.0, 1.0, 1.0], g);
+
+                            text::Text::new_color(color, 30).draw(
+                                &"Your energy",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 200.0), g);
+
+                            text::Text::new_color(color, 30).draw(
+                                &"Your relationship",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 300.0), g);
+
+                            text::Text::new_color(color, 30).draw(
+                                "Press <space> to go on",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 470.0), g);
+
+
+                            let energie_total = rectangle::square(0.0, 0.0, 20.0);
+                            rectangle(color, energie_total, c.transform.trans(
+                                50.0, 200.0).scale(10.0, 1.0), g);
+
+                            let energie = rectangle::square(0.0, 0.0, 20.0);
+                            rectangle([1.0, 1.0, 1.0, 1.0], energie, c.transform.trans(
+                                50.0, 200.0).scale(game.energy, 1.0), g);
+
+                            let rel_total = rectangle::square(0.0, 0.0, 20.0);
+                            rectangle(color, rel_total, c.transform.trans(
+                                50.0, 300.0).scale(10.0, 1.0), g);
+
+                            let rel = rectangle::square(0.0, 0.0, 20.0);
+                            rectangle([1.0, 1.0, 1.0, 1.0], rel, c.transform.trans(
+                                50.0, 300.0).scale(game.relationship, 1.0), g);
+                        });
+                    }
+                    "game_over" => {
+                        window.draw_2d(&e, |c, g| {
+                            clear([1.0, 0.0, 1.0, 1.0], g);
+
+                            text::Text::new_color(color, 30).draw(
+                                "I think we need to talk",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 280.0), g);
+
+                            text::Text::new_color(color, 30).draw(
+                                "Press <esc> to close",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 470.0), g)
+                        });
+                    }
+                    "win" => {
+                        window.draw_2d(&e, |c, g| {
+                            clear([0.0, 1.0, 0.0, 1.0], g);
+
+                            text::Text::new_color(color, 30).draw(
+                                "Perfect, thank you so much.",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 280.0), g);
+
+                            text::Text::new_color(color, 30).draw(
+                                "Press <esc> to close",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 470.0), g)
                         });
                     }
                     _ => {}
+
                 }
 
             }
