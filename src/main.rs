@@ -4,6 +4,7 @@ extern crate find_folder;
 extern crate ai_behavior;
 
 use std::rc::Rc;
+use std::path::PathBuf;
 use piston_window::*;
 use sprite::*;
 use ai_behavior::{
@@ -12,10 +13,36 @@ use ai_behavior::{
     Wait
 };
 
+struct Player {
+    x: f64,
+    y: f64,
+    w: f64,
+    h: f64,
+    is_jumping: bool,
+    max_height: f64
+}
+
+impl Player {
+    pub fn new() -> Player {
+        Player {
+            x: 50.0,
+            y: 300.0,
+            w: 40.0,
+            h: 30.0,
+            is_jumping: false,
+            max_height: 200.0
+        }
+    }
+    pub fn update(&mut self, dt: f64) {
+        println!("updating player");
+    }
+}
+
 struct Game {
     state: &'static str,
     tiredness: f64,
-    relationship: f64
+    relationship: f64,
+    player: Player
 }
 
 impl Game {
@@ -23,13 +50,23 @@ impl Game {
         Game {
             state: param_state,
             tiredness: 0.0,
-            relationship: 10.0
+            relationship: 10.0,
+            player: Player::new()
         }
     }
-
     pub fn set_state(&mut self, state: &'static str) {
         self.state = state;
     }
+    pub fn update(&mut self, dt: f64) {
+        self.player.update(dt);
+    }
+}
+
+fn get_asset_path(filename: &'static str) -> PathBuf {
+    find_folder::Search::ParentsThenKids(3, 3)
+        .for_folder("assets")
+        .unwrap()
+        .join(filename)
 }
 
 fn main() {
@@ -44,9 +81,6 @@ fn main() {
         .build()
         .unwrap();
 
-    let assets = find_folder::Search::ParentsThenKids(3, 3)
-        .for_folder("assets").unwrap();
-
     let bubble_id;
     let bubble_2;
     let bubble_3;
@@ -55,12 +89,12 @@ fn main() {
 
     let tex = Rc::new(Texture::from_path(
         &mut window.factory,
-        assets.join("bubble.png"),
+        get_asset_path("bubble.png"),
         Flip::None,
         &TextureSettings::new()).unwrap());
     let tex2 = Rc::new(Texture::from_path(
         &mut window.factory,
-        assets.join("bubble.png"),
+        get_asset_path("bubble.png"),
         Flip::Horizontal,
         &TextureSettings::new()).unwrap());
 
@@ -108,10 +142,18 @@ fn main() {
     talk_scene.run(bubble_4, &talk_seq4);
 
     let color = [0.0, 1.0, 1.0, 1.0];
-    let font = assets.join("shpinscher-regular.ttf");
-    let mut glyphs = Glyphs::new(font, window.factory.clone()).unwrap();
+    let mut glyphs = Glyphs::new(
+        get_asset_path("shpinscher-regular.ttf"),
+        window.factory.clone()).unwrap();
 
     let mut game = Game::new(&"talk");
+
+    let player = Texture::from_path(
+        &mut window.factory,
+        &get_asset_path(&"rust.png"),
+        Flip::None,
+        &TextureSettings::new()
+    ).unwrap();
 
     while let Some(e) = window.next() {
 
@@ -138,28 +180,38 @@ fn main() {
             }
 
             Input::Update(args) => {
-
+                match game.state {
+                    "shop" => {
+                        game.update(args.dt);
+                    }
+                    _ => {}
+                }
             }
 
             Input::Render(_) => {
-                window.draw_2d(&e, |c, g| {
-                    clear([1.0, 1.0, 1.0, 1.0], g);
 
-                    match game.state {
-                        "talk" => {
+                match game.state {
+                    "talk" => {
+                        window.draw_2d(&e, |c, g| {
+                            clear([1.0, 1.0, 1.0, 1.0], g);
+
                             talk_scene.draw(c.transform, g);
                             text::Text::new_color(color, 30).draw(
                                 "Press <space> to start",
                                 &mut glyphs,
                                 &c.draw_state,
                                 c.transform.trans(30.0, 470.0), g)
-                        }
-                        "shop" => {
-
-                        }
-                        _ => {}
+                        });
                     }
-                });
+                    "shop" => {
+                        window.draw_2d(&e, |c, g| {
+                            clear([1.0, 0.0, 0.0, 1.0], g);
+                            image(&player, c.transform, g);
+                        });
+                    }
+                    _ => {}
+                }
+
             }
             _ => {}
         }
