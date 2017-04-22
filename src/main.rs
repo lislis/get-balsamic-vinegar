@@ -237,7 +237,7 @@ fn main() {
         get_asset_path("shpinscher-regular.ttf"),
         window.factory.clone()).unwrap();
 
-    let mut game = Game::new(&"talk");
+    let mut game = Game::new(&"start");
 
     let player = Texture::from_path(
         &mut window.factory,
@@ -254,16 +254,16 @@ fn main() {
 
         match e {
             Input::Release(Button::Keyboard(key)) => {
-                // println!("{:?}", key);
 
-                match game.state {
-                    "talk" => {
-                        if key == Key::Space {
+                if key == Key::Space {
+                    match game.state {
+                        "start" => {
+                            game.set_state(&"talk");
+                        }
+                        "talk" => {
                             game.set_state(&"status");
                         }
-                    }
-                    "status" => {
-                        if key == Key::Space {
+                        "status" => {
                             if game.energy >= game.relationship {
                                 game.reset_for_shop();
                                 game.set_state(&"shop");
@@ -271,30 +271,21 @@ fn main() {
                                 game.set_state(&"game_over");
                             }
                         }
-                    }
-                    "shop" => {
-                        if key == Key::Space {
+                        "shop" => {
                             game.player.jump();
                         }
-                    }
-
-                    "compare" => {
-                        if key == Key::Space {
+                        "compare" => {
                             if game.not_there == 0 {
                                 game.set_state(&"win");
                             } else {
                                 game.set_state(&"resume");
                             }
-
                         }
-                    }
-                    "resume" => {
-                        if key == Key::Space {
+                        "resume" => {
                             game.set_state(&"status");
                         }
+                        _ => {}
                     }
-                    _ => {}
-
                 }
             }
 
@@ -311,13 +302,30 @@ fn main() {
             Input::Render(_) => {
 
                 match game.state {
+                    "start" => {
+                        window.draw_2d(&e, |c, g| {
+                            clear([1.0, 1.0, 1.0, 1.0], g);
+
+                            text::Text::new_color(color, 30).draw(
+                                "Get balsamic vinegar",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 200.0), g);
+
+                            text::Text::new_color(color, 30).draw(
+                                "Press <space> to start",
+                                &mut glyphs,
+                                &c.draw_state,
+                                c.transform.trans(30.0, 470.0), g);
+                        });
+                    }
                     "talk" => {
                         window.draw_2d(&e, |c, g| {
                             clear([1.0, 1.0, 1.0, 1.0], g);
 
                             talk_scene.draw(c.transform, g);
                             text::Text::new_color(color, 30).draw(
-                                "Press <space> to start",
+                                "Press <space> to go",
                                 &mut glyphs,
                                 &c.draw_state,
                                 c.transform.trans(30.0, 470.0), g)
