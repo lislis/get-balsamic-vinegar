@@ -278,7 +278,7 @@ fn main() {
                                 &c.draw_state,
                                 c.transform.trans(30.0, 360.0), g);
 
-                            text::Text::new_color(green_dark, 30).draw(
+                            text::Text::new_color(green, 30).draw(
                                 "Press <space> to shrugg",
                                 &mut glyphs,
                                 &c.draw_state,
