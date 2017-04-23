@@ -15,18 +15,18 @@ impl Player {
         Player {
             x: 60.0,
             y: 300.0,
-            w: 40.0,
-            h: 30.0,
-            speed: 2.0,
+            w: 120.0,
+            h: 80.0,
+            speed: 1.0,
             is_jumping: false,
-            max_height: 120.0,
+            max_height: 140.0,
             ground_pos: 300.0, // same as y at init
             basket: vec![]
         }
     }
     pub fn update(&mut self, dt: f64) {
         if self.is_jumping {
-            self.y -= self.speed * 1.2;
+            self.y -= self.speed;
             if self.y < self.max_height {
                 self.is_jumping = false;
             }

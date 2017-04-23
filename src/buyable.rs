@@ -12,10 +12,10 @@ impl Buyable {
     pub fn new(param_id: String) -> Buyable {
         Buyable {
             x: 500.0, // edge of the screen
-            y: 300.0, // same as player
+            y: 330.0, // same as player
             w: 50.0,
             h: 50.0,
-            speed: 3.0,
+            speed: 4.0,
             id: param_id,
             is_visible: true
         }

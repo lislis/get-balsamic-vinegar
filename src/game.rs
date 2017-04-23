@@ -34,15 +34,9 @@ impl Game {
                 "onions".to_string(),
                 "olive oil".to_string(),
                 "balsamic vinegar".to_string(),
-                "salt".to_string(),
-                "black pepper".to_string(),
                 "mustard".to_string(),
-                "chocolate".to_string(),
-                "ketchup".to_string(),
-                "bread".to_string(),
                 "cheese".to_string(),
-                "beer".to_string(),
-                "apples".to_string(),
+                "beer".to_string()
             ],
             list: vec![
                 "field salad".to_string(),
@@ -50,8 +44,6 @@ impl Game {
                 "onions".to_string(),
                 "olive oil".to_string(),
                 "balsamic vinegar".to_string(),
-                "salt".to_string(),
-                "black pepper".to_string(),
                 "mustard".to_string()
             ],
             t: 0.0,
@@ -70,7 +62,7 @@ impl Game {
         self.t += dt;
         self.t_spawn += dt;
 
-        if self.t_spawn > 2.2 { // should probably be a variable
+        if self.t_spawn > 3.2 { // should probably be a variable
             self.t_spawn = 0.0;
             self.spawn_buyable();
         }
